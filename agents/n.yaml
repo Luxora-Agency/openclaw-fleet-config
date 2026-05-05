@@ -13,6 +13,11 @@ channels:
     enabled: true
     bot_token: ${TELEGRAM_BOT_TOKEN_N}
     chat_id: ${TELEGRAM_CHAT_ID_N}
+runtime:
+  model:
+    primary: minimax/MiniMax-M2.7
+    fallbacks:
+      - google/gemini-2.5-flash
 skills:
   - private/audio-transcribe
   - private/bancos-co
