@@ -34,11 +34,11 @@ skills:
   - private/email-formal-co
   - private/factura-electronica-co
   - private/file-deliver
+  - private/image-generate
   - private/image-preprocess
   - private/nomina-co
   - private/pagos-co
   - private/pdf-read-with-ocr-fallback
-  - private/salud-co
   - private/tts-emit-minimax
   - private/web-fetch
 policies:
