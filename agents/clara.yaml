@@ -21,25 +21,24 @@ runtime:
   tts:
     provider: minimax
 skills:
-  - private/audio-transcribe
-  - private/bancos-co
-  - private/camara-comercio-co
-  - private/co-direcciones
-  - private/co-documentos
+  - private/co-locale
   - private/co-festivos
   - private/co-horarios
-  - private/co-locale
-  - private/contratos-co
+  - private/co-direcciones
+  - private/co-documentos
   - private/dian-tributario-co
-  - private/email-formal-co
   - private/factura-electronica-co
-  - private/file-deliver
-  - private/image-generate
-  - private/image-preprocess
-  - private/nomina-co
+  - private/bancos-co
   - private/pagos-co
-  - private/pdf-read-with-ocr-fallback
+  - private/nomina-co
+  - private/camara-comercio-co
+  - private/contratos-co
+  - private/email-formal-co
+  - private/audio-transcribe
   - private/tts-emit-minimax
+  - private/pdf-read-with-ocr-fallback
+  - private/file-deliver
+  - private/image-preprocess
   - private/web-fetch
 policies:
   private_domains: []
