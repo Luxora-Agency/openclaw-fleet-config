@@ -73,8 +73,17 @@ COPY entrypoint.sh /opt/fleet-init.sh
 COPY scripts/ /opt/fleet-scripts/
 COPY profiles/ /opt/fleet-profiles/
 COPY agents/ /opt/fleet-agents/
-COPY skills/ /opt/fleet-skills/
 COPY hooks/ /opt/fleet-hooks/
+
+# Skills viven en un repo aparte (Luxora-Agency/openclaw-fleet-skills). En
+# runtime el entrypoint clona la version mas reciente; aqui horneamos una
+# copia como fallback para cuando la red runtime falle. ARGs permiten apuntar
+# a un fork o un tag especifico al construir la imagen.
+ARG SKILLS_REPO_URL=https://github.com/Luxora-Agency/openclaw-fleet-skills.git
+ARG SKILLS_REF=main
+RUN git clone --depth 1 --branch "$SKILLS_REF" "$SKILLS_REPO_URL" /opt/fleet-skills && \
+    rm -rf /opt/fleet-skills/.git
+
 RUN chmod +x /opt/fleet-init.sh /opt/fleet-scripts/*.sh 2>/dev/null || true
 
 # La imagen base ya define ENTRYPOINT y HEALTHCHECK; los respetamos.

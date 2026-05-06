@@ -22,15 +22,6 @@ extendiendo la imagen oficial [`coollabsio/openclaw`](https://github.com/coollab
 ├── agents/
 │   ├── _example.yaml                # template — copia, renombra, edita
 │   └── agent01.yaml                 # slot de prueba
-├── skills/                          # skills privadas (procedurales, deterministas)
-│   ├── audio-transcribe/SKILL.md
-│   ├── tts-emit/SKILL.md
-│   ├── image-preprocess/SKILL.md
-│   ├── pdf-read-with-ocr-fallback/SKILL.md
-│   ├── file-deliver/SKILL.md
-│   ├── web-fetch/SKILL.md
-│   ├── image-generate/SKILL.md
-│   └── presentations/SKILL.md
 └── hooks/                           # hooks .ts (PreToolUse/PostToolUse/SessionStart)
     ├── secret-redaction.ts
     ├── path-scrubber.ts
@@ -55,7 +46,8 @@ Coolify Project
             │           a. clone fleet-config (best-effort, fallback a copia horneada)
             │           b. compile.py → /app/config/openclaw.json
             │           c. wipe stale /data/.openclaw/openclaw.json
-            │           d. cp skills/ → /data/.openclaw/skills/
+            │           d. clone fleet-skills (Luxora-Agency/openclaw-fleet-skills,
+            │              best-effort) y cp /opt/skills/* → /data/.openclaw/skills/
             │           e. cp hooks/  → /opt/hooks/
             │     4. configure.js (custom JSON + env vars → /data/.openclaw/openclaw.json)
             │     5. openclaw doctor --fix
@@ -69,7 +61,8 @@ Coolify Project
 ## Crear el Resource
 
 1. Coolify → **+ New Application** → **Public Repository**.
-2. URL: `https://github.com/Nikoxx99/openclaw-fleet-config`. Branch: `main`.
+2. URL: `https://github.com/Luxora-Agency/openclaw-fleet-config`. Branch: `main`.
+   Skills viven en repo aparte: `https://github.com/Luxora-Agency/openclaw-fleet-skills`.
 3. **Build Pack: Docker Compose**.
 4. Compose file location: `/docker-compose.coolify.yml`.
 5. Save → Coolify auto-detecta los `${VAR_*}` y los muestra vacios.

@@ -21,7 +21,9 @@
 # Vars (Coolify):
 #   AGENT_ID                  ej. "agent01" — debe existir agents/${AGENT_ID}.yaml
 #   FLEET_REF                 branch o tag (default: main)
-#   FLEET_REPO_URL            default: https://github.com/Nikoxx99/openclaw-fleet-config.git
+#   FLEET_REPO_URL            default: https://github.com/Luxora-Agency/openclaw-fleet-config.git
+#   SKILLS_REPO_URL           default: https://github.com/Luxora-Agency/openclaw-fleet-skills.git
+#   SKILLS_REF                branch o tag del skills repo (default: main)
 #   OPENCLAW_CUSTOM_CONFIG    default: /app/config/openclaw.json
 #   OPENCLAW_BUNDLED_SKILLS_DIR  default: /data/.openclaw/skills
 #   + todos los ${VAR} referenciados desde el YAML del agente
@@ -34,8 +36,11 @@ set -euo pipefail
 AGENT_ID="${1:-${AGENT_ID:-}}"
 : "${AGENT_ID:?AGENT_ID is required (set via compose command: [\"agent01\"] or env var AGENT_ID)}"
 : "${FLEET_REF:=main}"
-: "${FLEET_REPO_URL:=https://github.com/Nikoxx99/openclaw-fleet-config.git}"
+: "${FLEET_REPO_URL:=https://github.com/Luxora-Agency/openclaw-fleet-config.git}"
 : "${FLEET_DIR:=/opt/fleet}"
+: "${SKILLS_REF:=main}"
+: "${SKILLS_REPO_URL:=https://github.com/Luxora-Agency/openclaw-fleet-skills.git}"
+: "${SKILLS_DIR:=/opt/skills}"
 : "${HOOKS_DIR:=/opt/hooks}"
 : "${OPENCLAW_CUSTOM_CONFIG:=/app/config/openclaw.json}"
 : "${OPENCLAW_STATE_DIR:=/data/.openclaw}"
@@ -128,16 +133,44 @@ if [ -f "$PERSISTED_CONFIG" ]; then
   log "wiped stale persisted config at $PERSISTED_CONFIG (fleet redeploys are declarative)"
 fi
 
-# ── 6) Copiar skills privadas al dir bundled que OpenClaw escanea ───────────
+# ── 6) Clonar skills repo y copiar al dir bundled ───────────────────────────
+# Skills viven en un repo separado (Luxora-Agency/openclaw-fleet-skills) con
+# las skills en la raiz. Si el clon falla, fallback al directorio horneado
+# /opt/fleet-skills (poblado por el Dockerfile en build time desde el mismo
+# repo). Si el fleet-config legacy todavia tiene un directorio skills/
+# (durante transicion), tambien lo aceptamos como fallback adicional.
+#
 # Importante: cp -r y NO symlink. OpenClaw rechaza symlinks que apunten fuera
 # del root bundled (security check bundled-symlink-escape en
-# src/agents/skills/workspace.ts). Las paths bajo /opt/fleet quedan fuera del
-# root, asi que symlinks ahi son ignorados silenciosamente.
+# src/agents/skills/workspace.ts).
+SKILLS_SOURCE_DIR=""
+if git ls-remote --exit-code "$SKILLS_REPO_URL" "$SKILLS_REF" >/dev/null 2>&1; then
+  if [ ! -d "$SKILLS_DIR/.git" ]; then
+    log "cloning skills ${SKILLS_REPO_URL}@${SKILLS_REF}"
+    rm -rf "$SKILLS_DIR"
+    git clone --depth 1 --branch "$SKILLS_REF" "$SKILLS_REPO_URL" "$SKILLS_DIR"
+  else
+    log "skills dir exists; pulling ${SKILLS_REF}"
+    git -C "$SKILLS_DIR" fetch --depth 1 origin "$SKILLS_REF"
+    git -C "$SKILLS_DIR" checkout -B "$SKILLS_REF" "origin/${SKILLS_REF}"
+  fi
+  SKILLS_SOURCE_DIR="$SKILLS_DIR"
+elif [ -d "/opt/fleet-skills" ]; then
+  err "skills repo unreachable; falling back to baked-in /opt/fleet-skills"
+  SKILLS_SOURCE_DIR="/opt/fleet-skills"
+elif [ -d "$SOURCE_DIR/skills" ]; then
+  err "skills repo unreachable; using legacy ${SOURCE_DIR}/skills (fleet-config inline)"
+  SKILLS_SOURCE_DIR="$SOURCE_DIR/skills"
+fi
+
 mkdir -p "$OPENCLAW_BUNDLED_SKILLS_DIR"
 mounted=0
-if [ -d "$SOURCE_DIR/skills" ]; then
-  for skill_dir in "$SOURCE_DIR/skills/"*/; do
+if [ -n "$SKILLS_SOURCE_DIR" ]; then
+  # The skills repo has skill directories at its root. Copy each subdirectory
+  # that contains a SKILL.md file — skip anything else (.git, README.md, etc).
+  for skill_dir in "$SKILLS_SOURCE_DIR"/*/; do
     [ -d "$skill_dir" ] || continue
+    [ -f "$skill_dir/SKILL.md" ] || continue
     name=$(basename "$skill_dir")
     # Guard contra rm -rf con dir vacio.
     rm -rf "${OPENCLAW_BUNDLED_SKILLS_DIR:?}/${name}"
@@ -145,7 +178,7 @@ if [ -d "$SOURCE_DIR/skills" ]; then
     mounted=$((mounted + 1))
   done
 fi
-log "copied $mounted private skills into $OPENCLAW_BUNDLED_SKILLS_DIR"
+log "copied $mounted private skills into $OPENCLAW_BUNDLED_SKILLS_DIR (source=${SKILLS_SOURCE_DIR:-none})"
 
 # ── 7) Montar hooks (.ts) en /opt/hooks ─────────────────────────────────────
 if [ -d "$SOURCE_DIR/hooks" ]; then
