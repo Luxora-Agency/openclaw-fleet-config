@@ -137,6 +137,24 @@ channels:
   telegram:
     enabled: true
     # chat_id y bot_token_ref los define cada agente.
+    #
+    # Streaming preview: el default upstream "partial" hace que cada tool-call
+    # (Exec/Write/...) se mande como mensaje separado, lo que satura el chat
+    # cuando el agente trabaja con muchas herramientas. Issue upstream #77267
+    # reconoce el problema; mientras los maintainers deciden el nuevo default,
+    # forzamos "progress" — UN solo mensaje editable que se actualiza in-place
+    # con la herramienta actual y termina con la respuesta final.
+    #
+    # Para silencio total (solo mensaje final, sin previa) cambiar a:
+    #   streaming.mode: off
+    # Para mostrar streaming del texto sin las lineas de herramientas:
+    #   streaming.mode: partial
+    #   streaming.preview.toolProgress: false
+    streaming:
+      mode: progress
+      preview:
+        toolProgress: false   # ocultar las lineas Exec/Write/Read/...
+        commandText: status   # cuando se muestren, solo el verbo, no el comando crudo
 
 skills:
   # Oficiales (clawhub install)
